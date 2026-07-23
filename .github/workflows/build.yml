@@ -1,8 +1,8 @@
-name: Build Android APK
+name: Build and Release APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -10,34 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Récupération du code source
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Configuration du JDK Java 17
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          distribution: 'zulu'
           java-version: '17'
+          distribution: 'temurin'
 
+      # 3. Configuration de Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
 
-      # Régénère automatiquement la structure Android native moderne (v2)
-      - name: Repair Android project structure
-        run: flutter create . --platforms=android --org com.example
-
+      # 4. Récupération des dépendances
       - name: Install dependencies
         run: flutter pub get
 
+      # 5. Compilation de l'APK en mode Release
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      # 6. Publication directe dans l'onglet Releases
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: octopus-vpn-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: Octopus VPN v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
