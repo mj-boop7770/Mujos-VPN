@@ -1,68 +1,51 @@
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter_v2ray/flutter_v2ray.dart';
+name: Build and Release APK
 
-class V2RayService {
-  late final FlutterV2ray _v2ray;
-  
-  // Callback personnalisé pour notifier la vue des changements d'état
-  Function(String status, bool isConnected)? _onStatusChangeCallback;
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
-  V2RayService() {
-    // Le paramètre 'onStatusChanged' est désormais obligatoire à l'instanciation
-    _v2ray = FlutterV2ray(
-      onStatusChanged: (status) {
-        if (_onStatusChangeCallback != null) {
-          final statusString = status.state.toString();
-          final isConnected = statusString.contains("CONNECTED");
-          _onStatusChangeCallback!(statusString, isConnected);
-        }
-      },
-    );
-  }
+permissions:
+  contents: write
 
-  /// Initialise le noyau V2Ray et récupère sa version
-  Future<String> initialize() async {
-    await _v2ray.initializeV2Ray();
-    return await _v2ray.getCoreVersion();
-  }
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-  /// Écoute les changements d'état du tunnel en temps réel
-  void listenStatus(Function(String status, bool isConnected) onStatusChange) {
-    _onStatusChangeCallback = onStatusChange;
-  }
+    steps:
+      # 1. Récupération du code source
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  /// Démarre ou arrête la connexion VPN
-  Future<bool> toggleConnection({
-    required bool currentStatus,
-    required String configPath,
-    required Function(String error) onError,
-  }) async {
-    if (currentStatus) {
-      await _v2ray.stopV2Ray();
-      return false;
-    } else {
-      try {
-        // Demande de permission au système Android
-        final hasPermission = await _v2ray.requestPermission();
-        if (!hasPermission) {
-          onError("Permission VPN refusée par l'utilisateur.");
-          return false;
-        }
+      # 2. Configuration du JDK Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-        // Chargement du fichier de configuration JSON
-        final configString = await rootBundle.loadString(configPath);
+      # 3. Configuration de Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
 
-        // Lancement du tunnel VPN global
-        await _v2ray.startV2Ray(
-          remark: "Octopus Core Node",
-          config: configString,
-          proxyOnly: false, // Route tout le trafic du téléphone
-        );
-        return true;
-      } catch (e) {
-        onError("Erreur d'initialisation : $e");
-        return false;
-      }
-    }
-  }
-}
+      # 4. Récupération des dépendances
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 5. Compilation de l'APK en mode Release
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      # 6. Publication directe dans l'onglet Releases
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Octopus VPN v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
