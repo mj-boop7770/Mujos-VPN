@@ -1,12 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.octopus_vpn_core">
 
-    <!-- Permissions requises pour le VPN et le réseau -->
+    <!-- Permissions réseau et système -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="Octopus Core"
@@ -33,9 +35,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Service VPN requis par le plugin -->
+        <!-- Service 1 : Vrai tunnel VPN (Indispensable pour le mode VPN) -->
         <service
-            android:name="com.v2ray.ang.service.V2RayProxyOnlyService"
+            android:name="com.v2ray.ang.service.V2RayVpnService"
             android:exported="false"
             android:label="Octopus VPN Service"
             android:permission="android.permission.BIND_VPN_SERVICE"
@@ -45,9 +47,17 @@
             </intent-filter>
         </service>
 
+        <!-- Service 2 : Proxy local uniquement (Optionnel) -->
+        <service
+            android:name="com.v2ray.ang.service.V2RayProxyOnlyService"
+            android:exported="false"
+            android:label="Octopus Proxy Service"
+            android:process=":RunSoService">
+        </service>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
 </manifest>
-          
+            
