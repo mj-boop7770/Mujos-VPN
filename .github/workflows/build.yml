@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Récupération du code source
+      # 1. Récupération complète du code et des dépendances
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # 2. Configuration du JDK Java 17
       - name: Set up JDK 17
@@ -24,22 +26,22 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Utilisation de la version stable précédente de Flutter
+      # 3. Configuration de Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      # 4. Récupération des dépendances
+      # 4. Récupération des dépendances Flutter
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. Compilation de l'APK en mode Release
+      # 5. Compilation de l'APK
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      # 6. Publication directe dans l'onglet Releases
+      # 6. Publication dans l'onglet Releases
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
