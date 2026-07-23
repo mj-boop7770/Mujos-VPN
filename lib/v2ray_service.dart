@@ -2,7 +2,23 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_v2ray/flutter_v2ray.dart';
 
 class V2RayService {
-  final FlutterV2ray _v2ray = FlutterV2ray();
+  late final FlutterV2ray _v2ray;
+  
+  // Callback personnalisé pour notifier la vue des changements d'état
+  Function(String status, bool isConnected)? _onStatusChangeCallback;
+
+  V2RayService() {
+    // Le paramètre 'onStatusChanged' est désormais obligatoire à l'instanciation
+    _v2ray = FlutterV2ray(
+      onStatusChanged: (status) {
+        if (_onStatusChangeCallback != null) {
+          final statusString = status.state.toString();
+          final isConnected = statusString.contains("CONNECTED");
+          _onStatusChangeCallback!(statusString, isConnected);
+        }
+      },
+    );
+  }
 
   /// Initialise le noyau V2Ray et récupère sa version
   Future<String> initialize() async {
@@ -12,11 +28,7 @@ class V2RayService {
 
   /// Écoute les changements d'état du tunnel en temps réel
   void listenStatus(Function(String status, bool isConnected) onStatusChange) {
-    _v2ray.stateNotifier.addListener(() {
-      final state = _v2ray.stateNotifier.value;
-      final isConnected = state.status == "CONNECTED";
-      onStatusChange(state.status, isConnected);
-    });
+    _onStatusChangeCallback = onStatusChange;
   }
 
   /// Démarre ou arrête la connexion VPN
