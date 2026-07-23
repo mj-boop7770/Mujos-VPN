@@ -1,0 +1,17 @@
+{
+  "remark": "Octopus - Allemagne (Movitel)",
+  "address": "217.16.28.126",
+  "port": 443,
+  "id": "3346b3dd-fd39-4967-8c6f-a2c472bcd7c1",
+  "encryption": "none",
+  "network": "xhttp",
+  "security": "reality",
+  "realitySettings": {
+    "show": false,
+    "fingerprint": "firefox",
+    "serverName": "mymovitel.selfcare", 
+    "publicKey": "NGK7rbaQgNFEiZ2bnUG6PA2pU3yL1ye7WUhJk_qGO0U",
+    "shortId": "3fdbd681c2f9a56b",
+    "spiderX": ""
+  }
+}
