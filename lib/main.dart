@@ -1,144 +1,75 @@
 import 'package:flutter/material.dart';
-import 'v2ray_service.dart';
+import 'package:flutter_v2ray/flutter_v2ray.dart';
 
-void main() {
-  runApp(const OctopusVpnApp());
+// Instance globale du noyau V2Ray
+final FlutterV2ray flutterV2ray = FlutterV2ray();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialisation obligatoire avant de charger l'interface
+  await flutterV2ray.initializeV2Ray();
+  
+  runApp(const MyApp());
 }
 
-class OctopusVpnApp extends StatelessWidget {
-  const OctopusVpnApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Octopus Core VPN',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Fond Slate-900
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.indigoAccent,
-        ),
-      ),
-      home: const HomePage(),
+      title: 'Octopus VPN',
+      theme: ThemeData.dark(),
+      home: const HomeScreen(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
-  final V2RayService _v2rayService = V2RayService();
+class _HomeScreenState extends State<HomeScreen> {
+  bool isConnected = false;
+  
+  // Remplacer par votre propre lien de serveur (VLESS, VMess, Trojan, etc.)
+  String serverConfig = "vless://00000000-0000-0000-0000-000000000000@v2ray.example.com:443?type=ws&security=tls#Octopus-Server";
 
-  bool _isConnected = false;
-  String _status = "Déconnecté";
-  String _coreVersion = "Chargement...";
-
-  @override
-  void initState() {
-    super.initState();
-    _initNetwork();
-  }
-
-  void _initNetwork() async {
-    // 1. Initialiser V2Ray et récupérer la version
-    final version = await _v2rayService.initialize();
-    setState(() => _coreVersion = version);
-
-    // 2. Écouter les changements d'état en temps réel
-    _v2rayService.listenStatus((status, isConnected) {
-      setState(() {
-        _status = status;
-        _isConnected = isConnected;
-      });
-    });
-  }
-
-  void _toggleVpn() async {
-    await _v2rayService.toggleConnection(
-      currentStatus: _isConnected,
-      configPath: 'assets/config.json',
-      onError: (errorMsg) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg)),
+  Future<void> toggleVpn() async {
+    if (isConnected) {
+      await flutterV2ray.stopV2Ray();
+      setState(() => isConnected = false);
+    } else {
+      if (await flutterV2ray.requestPermission()) {
+        final V2RayURL parsedUrl = FlutterV2ray.parseFromURL(serverConfig);
+        await flutterV2ray.startV2Ray(
+          remark: parsedUrl.remark,
+          config: parsedUrl.fullConfiguration,
+          proxyOnly: false,
         );
-      },
-    );
+        setState(() => isConnected = true);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Octopus 🐙 Core'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Octopus VPN Core')),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icône d'état
-              Icon(
-                _isConnected ? Icons.shield_rounded : Icons.shield_outlined,
-                size: 96,
-                color: _isConnected ? Colors.greenAccent : Colors.white24,
-              ),
-              const SizedBox(height: 24),
-
-              // État du tunnel
-              Text(
-                _isConnected ? "Tunnel Actif" : "Tunnel Inactif",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: _isConnected ? Colors.greenAccent : Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Statut : $_status",
-                style: const TextStyle(fontSize: 14, color: Colors.white38),
-              ),
-              const SizedBox(height: 48),
-
-              // Bouton Start / Stop
-              SizedBox(
-                width: 200,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: _toggleVpn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isConnected ? Colors.redAccent : Colors.indigoAccent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    _isConnected ? "STOP" : "START",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 60),
-
-              // Pied de page
-              Text(
-                "Noyau V2Ray : $_coreVersion",
-                style: const TextStyle(fontSize: 12, color: Colors.white24),
-              ),
-            ],
+        child: ElevatedButton(
+          onPressed: toggleVpn,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isConnected ? Colors.red : Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+          ),
+          child: Text(
+            isConnected ? 'STOP' : 'START',
+            style: const TextStyle(fontSize: 20, color: Colors.white),
           ),
         ),
       ),
