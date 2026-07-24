@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Forcer une version stable compatible V1/V2
-  flutter_v2ray: 0.4.1
+  # Utiliser la version officielle disponible
+  flutter_v2ray: ^1.0.10
 
 dev_dependencies:
   flutter_test:
